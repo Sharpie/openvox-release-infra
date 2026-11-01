@@ -92,7 +92,7 @@ module Infra
 
   def s3_sync = [*s3_cmd, 'sync', '--no-progress']
 
-  def start_container(env_vars: ['GPG_PRIVATE_KEY_B64'])
+  def start_container(env_vars: [])
     Container.build_image(dockerfile: DOCKERFILE, tag: CONTAINER_TAG) unless Container.image_exists?(CONTAINER_TAG)
 
     name = CONTAINER_TAG.split(':').first
@@ -103,7 +103,7 @@ module Infra
     end
 
     container = Container.new(name: name, image: CONTAINER_TAG)
-    container.start(command: 'sleep infinity', volumes: { REPO_ROOT => CONTAINER_WORK }, env: container_env)
+    container.start(command: 'sleep infinity', volumes: { REPO_ROOT => CONTAINER_WORK }, env: container_env, secrets: ['gpg-key-openvox'])
     container
   end
 
@@ -138,7 +138,7 @@ module Infra
 
   def import_gpg_key(container)
     container.exec(
-      'echo "$GPG_PRIVATE_KEY_B64" | base64 -d | gpg --batch --import && ' \
+      'gpg --batch --import /run/secrets/gpg-key-openvox && ' \
       "gpg --list-secret-keys '#{GPG_KEY_ID}' >/dev/null && " \
       "printf 'trust\\n5\\ny\\n' | gpg --batch --command-fd 0 --edit-key '#{GPG_KEY_ID}' && " \
       "gpg --export --armor '#{GPG_KEY_ID}' > /tmp/gpg-pub.key && rpm --import /tmp/gpg-pub.key && rm /tmp/gpg-pub.key"

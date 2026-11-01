@@ -51,13 +51,14 @@ class Container
 
   # Start a detached named container (returns immediately).
   # Pass command: to override the image's CMD (e.g. 'sleep infinity' to keep alive for exec).
-  def start(command: nil, platform: nil, privileged: false, hostname: nil, tmpfs: [], volumes: {}, env: {})
+  def start(command: nil, platform: nil, privileged: false, hostname: nil, tmpfs: [], volumes: {}, env: {}, secrets: [])
     cmd = ['docker', 'run', '-d', '--name', name]
     cmd.push('--platform', platform) if platform
     cmd << '--privileged' if privileged
     cmd.push('--hostname', hostname) if hostname
     tmpfs.each { |mount| cmd.push('--tmpfs', mount) }
-    volumes.each { |host, guest| cmd.push('-v', "#{host}:#{guest}") }
+    volumes.each { |host, guest| cmd.push('-v', "#{host}:#{guest}:z") }
+    secrets.each { |name| cmd.push('--secret', name) }
     env.each_key { |key| cmd.push('-e', key) }
     cmd << image
     cmd.push('bash', '-c', command) if command
